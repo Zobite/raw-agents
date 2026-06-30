@@ -1,0 +1,30 @@
+/** Tất cả các key hợp lệ của AppSettings. Dùng khi get/set để tránh typo. */
+export enum SettingKey {
+  // General
+  Timezone = "timezone",
+
+  // AI Providers
+  OpenAIKey = "openaiKey",
+  OpenAIBaseUrl = "openaiBaseUrl",
+  AnthropicKey = "anthropicKey",
+  GoogleKey = "googleKey",
+  GoogleBaseUrl = "googleBaseUrl",
+  OpenRouterKey = "openrouterKey",
+  OllamaEndpoint = "ollamaEndpoint",
+
+  // Tool Code Assistant
+  ToolAssistantProvider = "toolAssistantProvider",
+  ToolAssistantModel = "toolAssistantModel",
+
+  // Prompt Assistant
+  PromptAssistantProvider = "prompt_assistant_provider",
+  PromptAssistantModel = "prompt_assistant_model",
+
+  // Object Creator
+  ObjectCreatorProviderId = "objectCreatorProviderId",
+  ObjectCreatorModel = "objectCreatorModel",
+
+  // Memory / Embedding
+  MemoryProviderId = "memoryProviderId",
+  MemoryModel = "memoryModel",
+}

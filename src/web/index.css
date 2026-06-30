@@ -1,0 +1,261 @@
+@import "tailwindcss";
+
+/* ── Geist Variable — self-hosted woff2 (primary font) ──────────────────────── */
+@font-face {
+  font-family: "Geist Variable";
+  src: url("./assets/fonts/Geist-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ── Geist Mono Variable — self-hosted woff2 (monospace font) ───────────────── */
+@font-face {
+  font-family: "Geist Mono Variable";
+  src: url("./assets/fonts/GeistMono-Variable.woff2") format("woff2");
+  font-weight: 100 900;
+  font-style: normal;
+  font-display: swap;
+}
+
+/* ═══════════════════════════════════════════════════════════════
+   BASE TOKENS — Dark Neon Design System (Trigger.dev inspired)
+   ═══════════════════════════════════════════════════════════════ */
+
+/* ══ Tailwind v4 theme tokens — names map directly to utility classes ══
+   --color-primary  →  text-primary, bg-primary, border-primary
+   --color-surface  →  bg-surface
+   --color-on-surface → text-on-surface
+*/
+@theme {
+  /* ── Border Radius ──────────────────────────────────────────── */
+  --radius-none: 0px;
+  --radius-xs: 4px;
+  --radius-sm: 4px;
+  --radius: 8px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+  --radius-full: 9999px;
+
+  /* ── Primary — Electric Lime ────────────────────────────────── */
+  --color-primary: #a8ff53;
+  --color-primary-50: color-mix(in oklch, #a8ff53 8%, #0e0f12);
+  --color-primary-100: color-mix(in oklch, #a8ff53 15%, #0e0f12);
+  --color-primary-200: color-mix(in oklch, #a8ff53 25%, #0e0f12);
+  --color-primary-300: color-mix(in oklch, #a8ff53 40%, #0e0f12);
+  --color-primary-400: color-mix(in oklch, #a8ff53 60%, #0e0f12);
+  --color-primary-500: #a8ff53;
+  --color-primary-600: color-mix(in oklch, #a8ff53 85%, white);
+  --color-primary-700: color-mix(in oklch, #a8ff53 70%, white);
+  --color-primary-800: color-mix(in oklch, #a8ff53 55%, white);
+  --color-primary-900: color-mix(in oklch, #a8ff53 45%, white);
+  --color-primary-950: color-mix(in oklch, #a8ff53 30%, white);
+
+  --color-primary-hover: color-mix(in oklch, #a8ff53 85%, white);
+
+  /* ── Secondary — Near Black (button text, deep contrast) ────── */
+  --color-secondary: #121317;
+
+  /* ── Tertiary — Cool Lavender ───────────────────────────────── */
+  --color-tertiary: #9c9af2;
+
+  /* ── Text Hierarchy ─────────────────────────────────────────── */
+  --color-main: #f3f4f6;
+  --color-soft: #d7d9dd;
+  --color-muted: #8b8d94;
+
+  /* ── Surface & Background ───────────────────────────────────── */
+  --color-background: #0e0f12;
+  --color-surface: #121317;
+  --color-sidebar: #0e0f12;
+  --color-surface-raised: #1a1d23;
+  --color-on-surface: #f3f4f6;
+
+  /* ── Borders ────────────────────────────────────────────────── */
+  --color-border: rgba(255, 255, 255, 0.08);
+  --color-border-hover: rgba(255, 255, 255, 0.15);
+  --default-border-color: rgba(255, 255, 255, 0.08);
+
+  /* ── Semantic ───────────────────────────────────────────────── */
+  --color-danger: #ff4d6d;
+  --color-danger-hover: #e8445f;
+  --color-danger-active: #d13b52;
+
+  /* ── Code ────────────────────────────────────────────────────── */
+  --color-code: #1a1d23;
+
+  /* ── Muted (translucent dividers) ───────────────────────────── */
+  --color-muted-border: #b5b8c01a;
+
+  /* ── Shadows — very subtle, intentionally flat ──────────────── */
+  --shadow-card: 0 0 0 1px rgba(255, 255, 255, 0.04);
+  --shadow-whisper: 0 0 0 1px rgba(255, 255, 255, 0.06), 0 4px 24px rgba(0, 0, 0, 0.3);
+  --shadow-drop: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 8px 24px rgba(0, 0, 0, 0.5);
+  --shadow-panel: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 40px rgba(0, 0, 0, 0.6), 0 2px 8px rgba(0, 0, 0, 0.3);
+
+  /* ── Typography ─────────────────────────────────────────────── */
+  --font-family-sans: "Geist Variable", "Geist", -apple-system, "system-ui", "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-family-serif: Georgia, "Times New Roman", Times, serif;
+  --font-family-mono: "Geist Mono Variable", "Geist Mono", "SFMono-Regular", Menlo, monospace;
+  --font-family-display: "Geist Variable", "Geist", -apple-system, "system-ui", "Segoe UI", Helvetica, Arial, sans-serif;
+  --font-family-chat: ui-sans-serif, -apple-system, "system-ui", "Segoe UI", Helvetica, "Apple Color Emoji", Arial, "sans-serif", "Segoe UI Emoji",
+    "Segoe UI Symbol";
+
+  --default-font-family: "Geist Variable", "Geist", ui-sans-serif, -apple-system, "system-ui", "Segoe UI", Helvetica, Arial, sans-serif;
+  --default-mono-font-family: "Geist Mono Variable", "Geist Mono", "SFMono-Regular", Menlo, monospace;
+
+  --font-size-2xs: 11px;
+  --font-size-xs: 12px;
+  --font-size-sm: 13px;
+  --font-size-md: 14px;
+  --font-size-base: 15px;
+  --font-size-lg: 17px;
+  --font-size-xl: 20px;
+
+  /* ── Field Heights ──────────────────────────────────────────── */
+  --spacing-field-sm: 28px;
+  --spacing-field-md: 36px;
+  --spacing-field-lg: 44px;
+
+  /* ── Scrollbar ──────────────────────────────────────────────── */
+  --color-scrollbar-thumb: rgba(255, 255, 255, 0.15);
+  --color-scrollbar-thumb-hover: rgba(255, 255, 255, 0.25);
+}
+
+@layer base {
+  * {
+    @apply box-border m-0 p-0;
+    border-color: rgba(255, 255, 255, 0.08);
+  }
+  html {
+    @apply overflow-hidden w-screen;
+    height: 100dvh;
+    background: var(--color-background);
+    font-family: var(--font-family-sans);
+    color-scheme: dark;
+  }
+  body {
+    @apply overflow-hidden w-screen;
+    font-family: var(--font-family-sans);
+    height: 100dvh;
+    font-size: 15px;
+    font-weight: 400;
+    color: var(--color-main);
+    background: var(--color-background);
+
+    /* ── Font rendering ── */
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    text-rendering: optimizeLegibility;
+    font-optical-sizing: auto;
+    font-feature-settings: "kern" 1, "calt" 1, "lnum" 1;
+    font-variant-numeric: lining-nums;
+  }
+  #root {
+    @apply flex flex-col overflow-hidden;
+    height: 100%;
+    background: var(--color-background);
+  }
+}
+
+/* ── Scrollbar ─────────────────────────────────────────────────────────────── */
+/* Hide on html/body/root — those use overflow:hidden */
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#root::-webkit-scrollbar {
+  display: none;
+}
+html,
+body,
+#root {
+  scrollbar-width: none;
+}
+
+/* Webkit scrollbar size + colors (applies when .game-scrollbar or explicit overflow triggers it) */
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-scrollbar-thumb);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-scrollbar-thumb-hover);
+}
+
+/* .game-scrollbar — use on inner scroll containers for consistent Firefox support */
+.game-scrollbar {
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-scrollbar-thumb) transparent;
+}
+
+/* ── Hide scrollbar utility ────────────────────────────────────────────────── */
+.no-scrollbar {
+  scrollbar-width: none !important;
+  -ms-overflow-style: none;
+}
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Canvas game popup slide-up animation ──────────────────────────────────── */
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateX(-50%) translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(-50%) translateY(0);
+  }
+}
+
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateX(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@keyframes ae-float-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px) scale(0.96);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* ── Sidebar tooltip slide-in ──────────────────────────────────────────────── */
+@keyframes sidebar-tooltip-in {
+  from {
+    opacity: 0;
+    transform: translateX(-4px);
+  }
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+/* ── Sidebar neon glow pulse (subtle) ──────────────────────────────────────── */
+@keyframes sidebar-neon-pulse {
+  0%,
+  100% {
+    box-shadow: 0 0 4px rgba(168, 255, 83, 0.15);
+  }
+  50% {
+    box-shadow: 0 0 8px rgba(168, 255, 83, 0.25);
+  }
+}

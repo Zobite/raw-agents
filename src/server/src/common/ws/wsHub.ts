@@ -1,0 +1,107 @@
+/**
+ * wsHub — singleton WebSocket broadcast hub
+ *
+ * Supports:
+ *   - wsHub.broadcast(type, payload) — fan-out to all connected clients
+ *   - wsHub.send(clientId, type, payload) — targeted send to one client
+ *   - wsHub.emit(type, payload) — alias for broadcast (back-compat)
+ *
+ * Each connection is assigned a unique clientId on open.
+ * Stream events (chat streaming) use targeted send; state events use broadcast.
+ */
+
+import type { ServerWebSocket } from "bun";
+
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+export type WsEventType =
+  | "agents:created"
+  | "agents:updated"
+  | "agents:deleted"
+  | "agents:tools-updated"
+  | "conversations:created"
+  | "conversations:updated"
+  | "conversations:deleted"
+  | "messages:created"
+  | "messages:updated"
+  | "teams:created"
+  | "teams:updated"
+  | "teams:deleted"
+  | "tools:created"
+  | "tools:updated"
+  | "tools:deleted"
+  | "users:created"
+  | "users:updated"
+  | "users:deleted"
+  | "ping"
+  // ── Chat stream events (targeted, not broadcast) ──
+  | "chat:chunk"
+  | "chat:thinking"
+  | "chat:tool-call"
+  | "chat:tool-result"
+  | "chat:done"
+  | "chat:error"
+  // ── AI assistant stream events (editor/prompt assistant) ──
+  | "ai:start"
+  | "ai:tool-result"
+  | "ai:chunk"
+  | "ai:tool-call"
+  | "ai:done"
+  | "ai:error";
+
+export interface WsEvent<T = unknown> {
+  type: WsEventType;
+  payload: T;
+}
+
+// ─── Hub ──────────────────────────────────────────────────────────────────────
+
+class WsHub {
+  private clients = new Map<string, ServerWebSocket<unknown>>();
+
+  add(ws: ServerWebSocket<unknown>, clientId: string) {
+    this.clients.set(clientId, ws);
+    console.log(`[WsHub] Client connected id=${clientId} (total: ${this.clients.size})`);
+  }
+
+  remove(clientId: string) {
+    this.clients.delete(clientId);
+    console.log(`[WsHub] Client disconnected id=${clientId} (total: ${this.clients.size})`);
+  }
+
+  /** Broadcast to ALL connected clients */
+  broadcast<T>(type: WsEventType, payload: T) {
+    if (this.clients.size === 0) return;
+    const msg = JSON.stringify({ type, payload } satisfies WsEvent<T>);
+    for (const ws of this.clients.values()) {
+      try {
+        ws.send(msg);
+      } catch {
+        // ignore dead sockets — will be removed on close
+      }
+    }
+  }
+
+  /** Send to a specific client by clientId */
+  send<T>(clientId: string, type: WsEventType, payload: T) {
+    const ws = this.clients.get(clientId);
+    if (!ws) return false;
+    try {
+      ws.send(JSON.stringify({ type, payload } satisfies WsEvent<T>));
+      return true;
+    } catch {
+      return false;
+    }
+  }
+
+  /** Alias for broadcast — back-compat with existing route code */
+  emit<T>(type: WsEventType, payload: T) {
+    this.broadcast(type, payload);
+  }
+
+  get size() {
+    return this.clients.size;
+  }
+}
+
+export const wsHub = new WsHub();
