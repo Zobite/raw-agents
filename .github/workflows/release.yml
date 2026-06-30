@@ -8,7 +8,7 @@ on:
 jobs:
   release:
     name: Build & Push Docker Image
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, oss]
     permissions:
       contents: write
 

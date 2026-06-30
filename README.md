@@ -4,7 +4,7 @@ Self-hosted AI Agent Manager with a beautiful web UI. Create, manage and schedul
 
 ![License](https://img.shields.io/badge/license-MIT-blue)
 ![Runtime](https://img.shields.io/badge/runtime-Bun-f472b6)
-![Version](https://img.shields.io/npm/v/raw-agents)
+![Docker](https://img.shields.io/badge/docker-ready-2496ED)
 
 ## Features
 
@@ -15,9 +15,67 @@ Self-hosted AI Agent Manager with a beautiful web UI. Create, manage and schedul
 - 💬 **Real-time Chat** — WebSocket-powered live streaming chat with agents
 - 🌐 **Public Sharing** — Share agents via public links with optional password protection
 
-## Quick Start
+## Installation
 
-### Prerequisites
+### Option 1: Docker (Recommended)
+
+The easiest way to run Raw Agents.
+
+```bash
+docker run -d \
+  --name raw-agents \
+  -p 15888:15888 \
+  -v raw-agents-data:/data \
+  zobite/raw-agents:latest
+```
+
+Open the web UI at [http://localhost:15888](http://localhost:15888).
+
+#### Docker Compose
+
+Create a `docker-compose.yml`:
+
+```yaml
+services:
+  raw-agents:
+    image: zobite/raw-agents:latest
+    container_name: raw-agents
+    ports:
+      - "15888:15888"
+    volumes:
+      - raw-agents-data:/data
+    restart: unless-stopped
+
+volumes:
+  raw-agents-data:
+```
+
+Then run:
+
+```bash
+docker compose up -d
+```
+
+#### Environment Variables
+
+| Variable   | Default       | Description      |
+| ---------- | ------------- | ---------------- |
+| `PORT`     | `15888`       | Server port      |
+| `HOST`     | `0.0.0.0`     | Server host      |
+| `DATA_DIR` | `/data`       | Data directory   |
+
+#### Build Docker Image Locally
+
+```bash
+docker build -t raw-agents:local .
+docker run -d -p 15888:15888 -v raw-agents-data:/data raw-agents:local
+```
+
+---
+
+### Option 2: Clone Source
+
+#### Prerequisites
 
 [Bun](https://bun.sh/) runtime ≥ 1.2 is required.
 
@@ -25,88 +83,45 @@ Self-hosted AI Agent Manager with a beautiful web UI. Create, manage and schedul
 curl -fsSL https://bun.sh/install | bash
 ```
 
-### Install
+#### Setup
 
 ```bash
-bun add -g raw-agents
+# Clone the repo
+git clone https://github.com/Zobite/raw-agents.git
+cd raw-agents
+
+# Install dependencies
+bun install
+
+# Start in development mode (API + Vite HMR)
+bun run dev
+
+# Or start in production mode
+bun run build
+bun run start
 ```
 
-### Run
+The web UI will be available at [http://localhost:15888](http://localhost:15888).
 
-```bash
-# Start the server (runs as background daemon)
-raw-agents start
+#### Available Scripts
 
-# Open the web UI
-open http://localhost:15123
-```
-
-That's it! The web UI is bundled and served automatically.
-
-## CLI Reference
-
-```
-raw-agents <command> [options]
-```
-
-### Commands
-
-| Command   | Description                          |
-| --------- | ------------------------------------ |
-| `start`   | Start the agent server (daemon mode) |
-| `stop`    | Stop the running server              |
-| `restart` | Restart the server                   |
-| `status`  | Check if the server is running       |
-| `logs`    | View server logs                     |
-| `version` | Print version                        |
-| `help`    | Show help                            |
-
-### Options
-
-**start / restart:**
-
-| Flag                | Default             | Description       |
-| ------------------- | ------------------- | ----------------- |
-| `--port <number>`   | `15123`             | Server port       |
-| `--host <string>`   | `127.0.0.1`         | Server host       |
-| `--data-dir <path>` | `~/.raw-agents` | Data directory    |
-| `-f, --foreground`  | —                   | Run in foreground |
-
-**logs:**
-
-| Flag               | Default | Description                    |
-| ------------------ | ------- | ------------------------------ |
-| `--lines <number>` | `50`    | Number of lines to show        |
-| `--follow`         | —       | Tail the log file continuously |
-
-### Examples
-
-```bash
-# Start with custom port
-raw-agents start --port 8080
-
-# Expose to network
-raw-agents start --host 0.0.0.0
-
-# Run in foreground (useful for debugging)
-raw-agents start --foreground
-
-# View live logs
-raw-agents logs --follow
-
-# Check status
-raw-agents status
-
-# Stop the server
-raw-agents stop
-```
+| Script               | Description                         |
+| -------------------- | ----------------------------------- |
+| `bun run dev`        | Start dev servers (API + Vite HMR)  |
+| `bun run build`      | Build for production                |
+| `bun run start`      | Start production server             |
+| `bun run lint`       | Run linter                          |
+| `bun run lint:fix`   | Run linter with auto-fix            |
+| `bun run format`     | Format code                         |
+| `bun run biome:check`| Lint + format check                 |
+| `bun run typecheck`  | TypeScript type checking            |
 
 ## Data Storage
 
-All data is stored in the data directory (`~/.raw-agents` by default):
+All data is stored in the data directory (`/data` in Docker, `~/.raw-agents` by default when running from source):
 
 ```
-~/.raw-agents/
+<data-dir>/
 ├── data.db        # SQLite database (agents, conversations, settings)
 ├── agent.pid      # PID file (daemon mode)
 └── agent.log      # Server logs (daemon mode)
@@ -121,22 +136,9 @@ All data is stored in the data directory (`~/.raw-agents` by default):
 - **AI**: LangChain (`@langchain/*`)
 - **State**: Redux Toolkit
 
-## Development
+## Contributing
 
-```bash
-# Clone the repo
-git clone https://github.com/phamvanquyit/raw-agents.git
-cd raw-agents
-
-# Install dependencies
-bun install
-
-# Start dev servers (API + Vite HMR)
-bun run dev
-
-# Lint & format
-bun run biome:check
-```
+See [CONTRIBUTING.md](CONTRIBUTING.md) for development guidelines.
 
 ## License
 
