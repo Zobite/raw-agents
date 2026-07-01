@@ -43,6 +43,10 @@ WORKDIR /app
 # Copy built server bundle
 COPY --from=builder /app/src/server/dist ./dist
 
+# Copy SQL migration files (needed at runtime by the migration runner)
+# Bundled index.js resolves __dirname via import.meta.url → dist/
+COPY --from=builder /app/src/server/src/common/db/migrations ./dist/migrations
+
 # Copy web UI build
 COPY --from=builder /app/src/web/dist ./public
 
