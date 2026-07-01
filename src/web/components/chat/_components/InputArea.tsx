@@ -357,7 +357,7 @@ export function InputArea({
                 <title>Send</title>
                 <path
                   d="M6 9.5V2.5M6 2.5L3 5.5M6 2.5L9 5.5"
-                  stroke={sendEnabled ? "white" : "currentColor"}
+                  stroke={sendEnabled ? "#1a1a1a" : "currentColor"}
                   strokeWidth="1.6"
                   strokeLinecap="round"
                   strokeLinejoin="round"
@@ -370,11 +370,11 @@ export function InputArea({
             type="button"
             onClick={onCancel}
             title="Stop"
-            className="w-7 h-7 rounded-lg bg-main border border-border flex items-center justify-center shrink-0 cursor-pointer hover:opacity-80 active:scale-95 transition-all duration-100"
+            className="w-7 h-7 rounded-lg bg-surface-raised border border-border-hover flex items-center justify-center shrink-0 cursor-pointer hover:opacity-80 active:scale-95 transition-all duration-100"
           >
             <svg width="9" height="9" viewBox="0 0 9 9" fill="none">
               <title>Stop</title>
-              <rect x="1" y="1" width="7" height="7" rx="1.5" fill="white" />
+              <rect x="1" y="1" width="7" height="7" rx="1.5" fill="currentColor" />
             </svg>
           </button>
         </RenderIf>
