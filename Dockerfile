@@ -40,6 +40,14 @@ FROM oven/bun:1-debian
 
 WORKDIR /app
 
+# Install Python 3 + venv + pip for custom tool execution (python-runner.ts)
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+      python3 \
+      python3-venv \
+      python3-pip \
+    && rm -rf /var/lib/apt/lists/*
+
 # Copy built server bundle
 COPY --from=builder /app/src/server/dist ./dist
 
