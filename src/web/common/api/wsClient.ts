@@ -118,6 +118,8 @@ function connect() {
       // Handle clientId assignment from server
       if ((event as { type: string }).type === "client:id") {
         clientId = (event.payload as { clientId: string }).clientId;
+        // Also notify listeners so waitForClientId() resolves on reconnect
+        notify(event);
         return;
       }
 

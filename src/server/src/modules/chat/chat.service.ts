@@ -4,6 +4,7 @@ import {
   agentMessages,
   agentConversations,
 } from "../../common/db/client.js";
+import { verifyPublicToken } from "../public/public.service.js";
 import { wsHub } from "../../common/ws/wsHub.js";
 import { streamAgent, generateAgent } from "../../common/ai/agentRunner.js";
 import { runRegistry } from "./run-registry.js";
@@ -148,21 +149,21 @@ export function startBackgroundStream(
 
 export async function handleWsMessage(
   clientId: string,
-  body: { agentId: string; conversationId: string; message: string; password?: string },
+  body: { agentId: string; conversationId: string; message: string; password?: string; token?: string },
 ) {
-  const { agentId, conversationId, message, password } = body;
+  const { agentId, conversationId, message, password, token } = body;
   if (!conversationId || !agentId || !message) return;
 
   const db = getDb();
   const conv = db
-    .select({ agentId: agentConversations.agentId, ownerId: agentConversations.ownerId })
+    .select({ agentId: agentConversations.agentId, ownerId: agentConversations.ownerId, trigger: agentConversations.trigger })
     .from(agentConversations)
     .where(eq(agentConversations.id, conversationId))
     .get();
 
   const msgAgentId = conv?.agentId ?? agentId;
 
-  if (conv?.ownerId === "guest") {
+  if (conv?.trigger === "public") {
     const agent = db
       .select({ publicPassword: agents.publicPassword, isPublic: agents.isPublic })
       .from(agents)
@@ -173,13 +174,23 @@ export async function handleWsMessage(
       return;
     }
     if (agent.publicPassword && agent.publicPassword !== password) {
-      wsHub.send(clientId, "chat:error", { conversationId, error: "Nhập sai mật khẩu!" });
-      return;
+      // Password mismatch — try verifying the public access token instead
+      const tokenValid = token ? await verifyPublicToken(msgAgentId, token) : false;
+      if (!tokenValid) {
+        wsHub.send(clientId, "chat:error", { conversationId, error: "Nhập sai mật khẩu!" });
+        return;
+      }
     }
   }
 
   const history = loadHistory(conversationId);
   saveMessage({ agentId: msgAgentId, conversationId, role: "user", content: message, metadata: null });
+
+  // Set conversation to running and broadcast to ALL clients so other tabs show spinner
+  db.update(agentConversations).set({ status: "running", startedAt: new Date() }).where(eq(agentConversations.id, conversationId)).run();
+  const updatedConv = db.select().from(agentConversations).where(eq(agentConversations.id, conversationId)).get();
+  if (updatedConv) wsHub.broadcast("conversations:updated", updatedConv);
+
   startBackgroundStream(clientId, agentId, conversationId, msgAgentId, message, history);
 }
 

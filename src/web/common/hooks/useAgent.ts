@@ -42,6 +42,7 @@ interface AgentStreamCallbacks {
   onError: (err: string) => void;
   abortSignal?: AbortSignal;
   password?: string;
+  token?: string;
 }
 
 /**
@@ -49,7 +50,7 @@ interface AgentStreamCallbacks {
  * Sends chat:send and listens for chat:* events filtered by conversationId.
  */
 async function streamAgentChat(agentId: string, message: string, conversationId: string, callbacks: AgentStreamCallbacks): Promise<void> {
-  const { onChunk, onThinking, onToolCall, onToolResult, onDone, onError, abortSignal, password } = callbacks;
+  const { onChunk, onThinking, onToolCall, onToolResult, onDone, onError, abortSignal, password, token } = callbacks;
 
   if (abortSignal?.aborted) return;
 
@@ -141,7 +142,7 @@ async function streamAgentChat(agentId: string, message: string, conversationId:
     );
 
     // Send the chat message to trigger the stream
-    wsClient.send("chat:send", { agentId, conversationId, message, password });
+    wsClient.send("chat:send", { agentId, conversationId, message, password, token });
   });
 }
 
@@ -177,6 +178,7 @@ interface RunOptions {
   onDone: (text: string) => void;
   onError: (err: string) => void;
   password?: string;
+  token?: string;
 }
 
 export function useAgentRunner() {
@@ -188,7 +190,7 @@ export function useAgentRunner() {
   const conversationIdRef = useRef<string>("");
 
   const run = useCallback(async (options: RunOptions) => {
-    const { agent, conversationId, userMessage, onChunk, onThinking, onToolCall, onToolResult, onDone, onError, password } = options;
+    const { agent, conversationId, userMessage, onChunk, onThinking, onToolCall, onToolResult, onDone, onError, password, token } = options;
 
     agentIdRef.current = agent.id;
     conversationIdRef.current = conversationId;
@@ -210,6 +212,7 @@ export function useAgentRunner() {
         onError,
         abortSignal: abort.signal,
         password,
+        token,
       });
     } finally {
       if (runIdRef.current === currentRunId) {

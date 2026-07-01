@@ -1,56 +1,185 @@
 import { eq, and, desc } from "drizzle-orm";
 import { getDb, agents, agentConversations, agentMessages } from "../../common/db/client.js";
 import { BadRequestException } from "../../common/exceptions/http.exception.js";
+import { SignJWT, jwtVerify } from "jose";
+
+// ── Public access token helpers ───────────────────────────────────────────────
+
+/** Derive a signing key from the agent's public password. */
+function getPublicTokenSecret(password: string): Uint8Array {
+  return new TextEncoder().encode(`public_access::${password}`);
+}
+
+/** Sign a short-lived JWT for public agent access (24h). */
+async function generatePublicToken(agentId: string, password: string): Promise<string> {
+  return new SignJWT({ agentId, scope: "public" })
+    .setProtectedHeader({ alg: "HS256" })
+    .setIssuedAt()
+    .setExpirationTime("24h")
+    .sign(getPublicTokenSecret(password));
+}
+
+/** Verify a public access token. Returns true if valid and matches agentId. */
+export async function verifyPublicToken(agentId: string, token: string): Promise<boolean> {
+  const db = getDb();
+  const agent = db.select().from(agents).where(eq(agents.id, agentId)).get();
+  if (!agent || !agent.isPublic || !agent.publicPassword) return false;
+  try {
+    const { payload } = await jwtVerify(token, getPublicTokenSecret(agent.publicPassword));
+    return (payload as any).agentId === agentId && (payload as any).scope === "public";
+  } catch {
+    return false;
+  }
+}
 
 export function getPublicAgent(agentId: string) {
   const db = getDb();
   const agent = db.select().from(agents).where(eq(agents.id, agentId)).get();
   if (!agent) throw new BadRequestException("Agent not found");
-  if (!agent.isPublic) throw new BadRequestException("Thật đáng tiếc, Agent này không được chia sẻ công khai.");
+  if (!agent.isPublic)
+    throw new BadRequestException("Thật đáng tiếc, Agent này không được chia sẻ công khai.");
   return {
     data: {
-      id: agent.id, name: agent.name, description: agent.description,
+      id: agent.id,
+      name: agent.name,
+      description: agent.description,
       requiresPassword: !!agent.publicPassword && agent.publicPassword.length > 0,
     },
   };
 }
 
-export function verifyPublicPassword(agentId: string, password?: string) {
+export async function verifyPublicPassword(agentId: string, password?: string) {
   const db = getDb();
   const agent = db.select().from(agents).where(eq(agents.id, agentId)).get();
   if (!agent || !agent.isPublic) throw new BadRequestException("Agent unavailable");
   if (agent.publicPassword && agent.publicPassword !== password) {
     throw new BadRequestException("Mật khẩu không chính xác.");
   }
-  return { valid: true };
+  const token = agent.publicPassword
+    ? await generatePublicToken(agentId, agent.publicPassword)
+    : undefined;
+  return { valid: true, token };
 }
 
-export function getOrCreatePublicConversation(agentId: string) {
+// ── Conversation helpers ───────────────────────────────────────────────────────
+
+function loadConvMessages(convId: string) {
+  return getDb()
+    .select()
+    .from(agentMessages)
+    .where(eq(agentMessages.conversationId, convId))
+    .orderBy(agentMessages.createdAt)
+    .all()
+    .filter((r) => !(r.role === "tool" && r.content === ""));
+}
+
+/** List all public conversations for a fingerprint, newest first. */
+export function listPublicConversations(agentId: string, fingerprint: string) {
   const db = getDb();
   const agent = db.select().from(agents).where(eq(agents.id, agentId)).get();
   if (!agent || !agent.isPublic) throw new BadRequestException("Agent unavailable");
 
-  const existing = db.select().from(agentConversations)
-    .where(and(eq(agentConversations.agentId, agentId), eq(agentConversations.trigger, "public")))
+  const convs = db
+    .select()
+    .from(agentConversations)
+    .where(
+      and(
+        eq(agentConversations.agentId, agentId),
+        eq(agentConversations.trigger, "public"),
+        eq(agentConversations.ownerId, fingerprint),
+      ),
+    )
     .orderBy(desc(agentConversations.createdAt))
+    .all();
+
+  // Use first user message as title/preview
+  const result = convs.map((conv) => {
+    const firstMsg = db
+      .select()
+      .from(agentMessages)
+      .where(
+        and(
+          eq(agentMessages.conversationId, conv.id),
+          eq(agentMessages.role, "user"),
+        ),
+      )
+      .orderBy(agentMessages.createdAt)
+      .get();
+    return {
+      id: conv.id,
+      title: firstMsg ? firstMsg.content.slice(0, 60) : "New Chat",
+      createdAt: conv.createdAt,
+      isEmpty: !firstMsg,
+      status: conv.status,
+    };
+  });
+
+  return { data: result };
+}
+
+/** Create a brand-new public conversation for this fingerprint. */
+export function createPublicConversation(agentId: string, fingerprint: string) {
+  const db = getDb();
+  const agent = db.select().from(agents).where(eq(agents.id, agentId)).get();
+  if (!agent || !agent.isPublic) throw new BadRequestException("Agent unavailable");
+
+  const convId = crypto.randomUUID();
+  const now = new Date();
+  db.insert(agentConversations)
+    .values({
+      id: convId,
+      agentId,
+      title: "New Chat",
+      trigger: "public",
+      ownerId: fingerprint,
+      status: "running",
+      startedAt: now,
+      createdAt: now,
+    })
+    .run();
+
+  return { data: { conversationId: convId, messages: [] } };
+}
+
+/** Load an existing public conversation by ID (validates ownership). */
+export function getPublicConversation(agentId: string, convId: string, fingerprint: string) {
+  const db = getDb();
+  const conv = db
+    .select()
+    .from(agentConversations)
+    .where(
+      and(
+        eq(agentConversations.id, convId),
+        eq(agentConversations.agentId, agentId),
+        eq(agentConversations.trigger, "public"),
+        eq(agentConversations.ownerId, fingerprint),
+      ),
+    )
     .get();
+  if (!conv) throw new BadRequestException("Conversation not found");
 
-  let convId: string;
-  if (existing) {
-    convId = existing.id;
-  } else {
-    convId = crypto.randomUUID();
-    const now = new Date();
-    db.insert(agentConversations).values({
-      id: convId, agentId, title: "Guest Session", trigger: "public",
-      status: "running", startedAt: now, createdAt: now,
-    }).run();
-  }
-
-  const msgs = db.select().from(agentMessages)
-    .where(eq(agentMessages.conversationId, convId))
-    .orderBy(agentMessages.createdAt).all()
-    .filter((r) => !(r.role === "tool" && r.content === ""));
-
+  const msgs = loadConvMessages(convId);
   return { data: { conversationId: convId, messages: msgs } };
+}
+
+/** Delete a public conversation (validates ownership). */
+export function deletePublicConversation(agentId: string, convId: string, fingerprint: string) {
+  const db = getDb();
+  const conv = db
+    .select()
+    .from(agentConversations)
+    .where(
+      and(
+        eq(agentConversations.id, convId),
+        eq(agentConversations.agentId, agentId),
+        eq(agentConversations.trigger, "public"),
+        eq(agentConversations.ownerId, fingerprint),
+      ),
+    )
+    .get();
+  if (!conv) throw new BadRequestException("Conversation not found");
+
+  // Delete messages first, then conversation
+  db.delete(agentMessages).where(eq(agentMessages.conversationId, convId)).run();
+  db.delete(agentConversations).where(eq(agentConversations.id, convId)).run();
 }
