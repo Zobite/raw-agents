@@ -113,19 +113,17 @@ jobs:
             type=raw,value=latest
 
       - name: Create and push multi-arch manifests
+        env:
+          TAGS: ${{ steps.meta.outputs.tags }}
         run: |
           TAG="${{ github.ref_name }}"
           SOURCE_AMD64="${{ env.IMAGE_NAME }}:${TAG}-amd64"
           SOURCE_ARM64="${{ env.IMAGE_NAME }}:${TAG}-arm64"
 
           # Create a manifest for each desired tag
-          for DEST_TAG in ${{ join(steps.meta.outputs.tags, ' ') }}; do
+          while IFS= read -r DEST_TAG; do
+            [ -z "${DEST_TAG}" ] && continue
             echo "→ Creating manifest: ${DEST_TAG}"
             docker buildx imagetools create -t "${DEST_TAG}" \
               "${SOURCE_AMD64}" "${SOURCE_ARM64}"
-          done
-
-      - name: Clean up per-platform tags
-        run: |
-          echo "Per-platform tags (${{ github.ref_name }}-amd64, ${{ github.ref_name }}-arm64) will remain as cache references."
-          echo "They can be cleaned up manually or via Docker Hub API if desired."
+          done <<< "${TAGS}"
