@@ -12,8 +12,8 @@
 #     zobite/raw-agents:latest
 # ─────────────────────────────────────────────────────────────────────────────
 
-# ── Stage 1: Build ──────────────────────────────────────────────────────────
-FROM oven/bun:1 AS builder
+# ── Stage 1: Install dependencies ──────────────────────────────────────────
+FROM oven/bun:1 AS deps
 
 WORKDIR /app
 
@@ -23,7 +23,14 @@ COPY src/server/package.json src/server/
 COPY src/web/package.json src/web/
 
 # Install all dependencies (including devDependencies for build)
-RUN bun install --frozen-lockfile
+# Use BuildKit cache mount to persist bun's download cache across builds
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --frozen-lockfile
+
+# ── Stage 2: Build ─────────────────────────────────────────────────────────
+FROM deps AS builder
+
+WORKDIR /app
 
 # Copy source code
 COPY src/ src/
@@ -35,18 +42,22 @@ RUN cd src/web && bun run build
 # Build server (Bun bundle) → src/server/dist/index.js
 RUN cd src/server && bun run build
 
-# ── Stage 2: Production ────────────────────────────────────────────────────
-FROM oven/bun:1-debian
-
-WORKDIR /app
+# ── Stage 3: Runtime base (cache apt-get layer) ───────────────────────────
+FROM oven/bun:1-debian AS runtime-base
 
 # Install Python 3 + venv + pip for custom tool execution (python-runner.ts)
+# This layer is cached separately so it doesn't re-run on code changes
 RUN apt-get update && \
     apt-get install -y --no-install-recommends \
       python3 \
       python3-venv \
       python3-pip \
     && rm -rf /var/lib/apt/lists/*
+
+# ── Stage 4: Production ───────────────────────────────────────────────────
+FROM runtime-base
+
+WORKDIR /app
 
 # Copy built server bundle
 COPY --from=builder /app/src/server/dist ./dist
@@ -63,7 +74,8 @@ COPY --from=builder /app/package.json ./
 COPY --from=builder /app/bun.lock ./
 COPY --from=builder /app/src/server/package.json ./src/server/
 COPY --from=builder /app/src/web/package.json ./src/web/
-RUN bun install --production --frozen-lockfile
+RUN --mount=type=cache,target=/root/.bun/install/cache \
+    bun install --production --frozen-lockfile
 
 # Create data directory
 RUN mkdir -p /data

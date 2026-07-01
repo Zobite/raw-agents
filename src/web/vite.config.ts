@@ -19,6 +19,8 @@ export default defineConfig({
   build: {
     outDir: "dist",
     emptyOutDir: true,
+    sourcemap: false,
+    reportCompressedSize: false,
     rollupOptions: {
       input: resolve(__dirname, "index.html"),
       output: {
